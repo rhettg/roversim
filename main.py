@@ -5,27 +5,20 @@ import math
 class World:
     def __init__(self):
         self.entities = []
-        self.entityBounds = {}
+        self.entityPositions = {}
     
     def tick(self, ts):
         for entity in self.entities:
             entity.tick(ts)
 
     def setEntityPosition(self, entity, position):
-        height, width = entity.size()
-        bounds = EntityBounds(
-            Point(position.x - width / 2, position.y - height / 2), 
-            Point(position.x + width / 2, position.y + height / 2))
-
-        self.entityBounds[entity] = bounds
+        self.entityPositions[entity] = position
 
     def translate(self, entity, direction, amount):
-        b = self.entityBounds[entity]
-        self.entityBounds[entity] = b.translate(direction, amount)
+        self.entityPositions[entity] = self.entityPositions[entity].translate(direction, amount)
 
     def rotate(self, entity, angle):
-        b = self.entityBounds[entity]
-        self.entityBounds[entity] = b.rotate(angle)
+        self.entityPositions[entity] = self.entityPositions[entity].rotate(angle)
 
 
 class Point:
@@ -42,6 +35,27 @@ class Point:
         newx = center.x + (self.x - center.x) * math.cos(angle) - (self.y - center.y) * math.sin(angle)
         newy = center.y + (self.x - center.x) * math.sin(angle) + (self.y - center.y) * math.cos(angle)
         return Point(newx, newy)
+
+
+class EntityPosition:
+    def __init__(self, point, angle):
+        self.point = point
+        self.angle = angle
+    
+    def translate(self, direction, amount):
+        absDirection = self.angle + direction
+        if absDirection > 2 * math.pi:
+            absDirection -= 2 * math.pi
+
+        newpoint = self.point.translate(absDirection, amount)
+        return EntityPosition(newpoint, self.angle)
+    
+    def rotate(self, angle):
+        newAngle = self.angle + angle
+        if newAngle > 2 * math.pi:
+            newAngle -= 2 * math.pi
+
+        return EntityPosition(self.point, newAngle)
 
 
 class EntityBounds:
@@ -93,15 +107,15 @@ class Rover:
         s = self.motorA.speed
         self.world.translate(self, 0, s)
 
-        b = self.world.entityBounds[self]
-        print("Rover: ({}, {})".format(b.center().x, b.center().y))
+        p = self.world.entityPositions[self]
+        print("Rover: {} ({}, {})".format(p.angle, p.point.x, p.point.y))
 
 
 def main():
     w = World()
 
     r = Rover(w)
-    w.setEntityPosition(r, Point(0, 0))
+    w.setEntityPosition(r, EntityPosition(Point(0, 0), 0))
     w.rotate(r, 90 * math.pi / 180)
     r.motorA.setVelocity(0.001)
     r.motorB.setVelocity(0.001)
