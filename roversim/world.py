@@ -2,13 +2,16 @@ import math
 
 
 class World:
-    def __init__(self):
+    def __init__(self, redis_client=None):
         self.entities = []
         self.entityPositions = {}
+        self.redis_client = redis_client
 
     def tick(self, ts):
         for entity in self.entities:
             entity.tick(ts)
+        if self.redis_client:
+            self.redis_client.set("roversim:ts", ts)
 
     def setEntityPosition(self, entity, position):
         self.entityPositions[entity] = position

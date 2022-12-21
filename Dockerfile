@@ -19,5 +19,7 @@ WORKDIR /app
 
 EXPOSE 8080
 
+ENV REDIS_URL=redis://redis:6379
+
 # Run main.py
 CMD ["python", "main.py"]

@@ -1,5 +1,8 @@
+import os
 import sys
 import time
+
+import redis
 
 import roversim
 
@@ -46,12 +49,19 @@ def applyCommand(rover, cmd):
 
 
 def main():
-    w = roversim.World()
+    rds = redis.from_url(os.environ.get(
+        "REDIS_URL", "redis://localhost:6379/0"))
+    if not rds.ping():
+        print("Redis is not available", file=sys.stderr)
+        sys.exit(1)
+
+    w = roversim.World(rds)
 
     r = roversim.Rover(w)
     w.setEntityPosition(r, roversim.EntityPosition(roversim.Point(0, 0), 0))
 
-    ts = 0.0
+    ts = float(rds.get("roversim:ts")) or 0.0
+    print("starting at {}".format(ts))
 
     try:
         for cmd in sys.stdin:
