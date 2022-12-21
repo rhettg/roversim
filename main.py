@@ -84,31 +84,78 @@ class Motor:
         self.world.entities.append(self)
         self.speed = 0
     
-    def setVelocity(self, velocity):
+    def setPower(self, power):
         # TODO: model in acceleration, stall, etc.
-        self.speed = velocity
+        self.speed = power
 
     def tick(self, ts):
-        print("I'm a motor!")
+        pass
 
 
 class Rover:
+    # At full power, how fast should the motors push the rover?
+    # In meters per second.
+    MAX_MOTOR_VELOCITY = 0.001
+    WHEELBASE_LENGTH = 0.005
+
     def __init__(self, world):
         self.world = world
         self.world.entities.append(self)
 
         self.motorA = Motor(self.world)
         self.motorB = Motor(self.world)
+
+        self.lastTick = 0
     
     def size(self):
         return (0.01, 0.01)
 
+    def calculateMovement(self, ts):
+        dt = ts - self.lastTick
+
+        s1 = self.MAX_MOTOR_VELOCITY * self.motorA.speed
+        s2 = self.MAX_MOTOR_VELOCITY * self.motorB.speed
+
+        # TODO: What I'd like to do is take into account the speed of two
+        # motors, the wheelbase length and how the arc of the movemeent changes
+        # based on those factors. But I'm not sure how to do that yet, and it's
+        # probably not strictly necessary at this point. The physical model
+        # doesn't need to be accurate yet.
+        # As the motor speeds are the same, the rover will move in a straight line, or an infite radius circle.
+        # copilot gave me this formula, but does it work?
+        # r = self.WHEELBASE_LENGTH / 2 * (s1 + s2) / (s2 - s1)
+        # r = self.WHEELBASE_LENGTH / (2 + (s2 + s1))
+
+        if s1 == s2:
+            s = s1
+            rotation = 0
+        else:
+            if s1 > s2:
+                s = (s1 - s2) / 2
+            elif s2 > s1:
+                s = (s2 - s1) / 2
+
+            circ = 2 * math.pi * self.WHEELBASE_LENGTH / 2
+            arcLength = s / circ
+
+            # Now we have two sides of a triangle, we estimate the rotation angle
+            rotation = math.atan(arcLength / s)
+
+        return (rotation * dt, 0, s * dt)
+
     def tick(self, ts):
-        s = self.motorA.speed
-        self.world.translate(self, 0, s)
+        if self.lastTick == 0:
+            self.lastTick = ts
+
+        rotate, direction, amount = self.calculateMovement(ts)
+        #print("rotation after {:.4f}: {:.2f}°, direction: {}°, amount: {:.3f}m".format(ts - self.lastTick, math.degrees(rotate), math.degrees(direction), amount))
+
+        self.world.translate(self, direction, amount)
+        self.world.rotate(self, rotate)
 
         p = self.world.entityPositions[self]
         print("Rover: {}° ({:.3f}m, {:.3f}m)".format(math.degrees(p.angle), p.point.x, p.point.y))
+        self.lastTick = ts
 
 
 def main():
@@ -116,9 +163,9 @@ def main():
 
     r = Rover(w)
     w.setEntityPosition(r, EntityPosition(Point(0, 0), 0))
-    w.rotate(r, math.radians(45))
-    r.motorA.setVelocity(0.001)
-    r.motorB.setVelocity(0.001)
+    #w.rotate(r, math.radians(45))
+    r.motorA.setPower(1.0)
+    r.motorB.setPower(-1.0)
 
 
     ts = 0.0
