@@ -46,6 +46,8 @@ class EntityPosition:
         absDirection = self.angle + direction
         if absDirection > 2 * math.pi:
             absDirection -= 2 * math.pi
+        if absDirection < 0:
+            absDirection += 2 * math.pi
 
         newpoint = self.point.translate(absDirection, amount)
         return EntityPosition(newpoint, self.angle)
@@ -54,6 +56,8 @@ class EntityPosition:
         newAngle = self.angle + angle
         if newAngle > 2 * math.pi:
             newAngle -= 2 * math.pi
+        if newAngle < 0:
+            newAngle += 2 * math.pi
 
         return EntityPosition(self.point, newAngle)
 
