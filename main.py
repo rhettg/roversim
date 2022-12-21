@@ -136,14 +136,16 @@ class Rover:
         else:
             if s1 > s2:
                 s = (s1 - s2) / 2
+                sign = 1.0
             elif s2 > s1:
                 s = (s2 - s1) / 2
+                sign = -1.0
 
             circ = 2 * math.pi * self.WHEELBASE_LENGTH / 2
             arcLength = s / circ
 
             # Now we have two sides of a triangle, we estimate the rotation angle
-            rotation = math.atan(arcLength / s)
+            rotation = sign * math.atan(arcLength / s)
 
         return (rotation * dt, 0, s * dt)
 
