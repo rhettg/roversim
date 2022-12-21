@@ -160,7 +160,7 @@ class Rover:
         self.world.rotate(self, rotate)
 
         p = self.world.entityPositions[self]
-        print("Rover: {}° ({:.3f}m, {:.3f}m)".format(math.degrees(p.angle), p.point.x, p.point.y))
+        print("Rover: {:.1f}° ({:.3f}m, {:.3f}m)".format(math.degrees(p.angle), p.point.x, p.point.y))
         self.lastTick = ts
 
 
