@@ -108,7 +108,7 @@ class Rover:
         self.world.translate(self, 0, s)
 
         p = self.world.entityPositions[self]
-        print("Rover: {} ({}, {})".format(p.angle, p.point.x, p.point.y))
+        print("Rover: {}° ({:.3f}m, {:.3f}m)".format(math.degrees(p.angle), p.point.x, p.point.y))
 
 
 def main():
@@ -116,7 +116,7 @@ def main():
 
     r = Rover(w)
     w.setEntityPosition(r, EntityPosition(Point(0, 0), 0))
-    w.rotate(r, 90 * math.pi / 180)
+    w.rotate(r, math.radians(45))
     r.motorA.setVelocity(0.001)
     r.motorB.setVelocity(0.001)
 
