@@ -61,7 +61,7 @@ def main():
     w.restore_entity(r)
 
     ts = float(rds.get("roversim:ts")) or 0.0
-    print("starting at {}".format(ts))
+    print("starting at +{:.2f}s".format(ts))
 
     try:
         for cmd in sys.stdin:
