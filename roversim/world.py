@@ -10,19 +10,46 @@ class World:
     def tick(self, ts):
         for entity in self.entities:
             entity.tick(ts)
+
         if self.redis_client:
             self.redis_client.set("roversim:ts", ts)
 
+    def restore_entity(self, entity):
+        self.entityPositions[entity] = self._load_entity(entity)
+
     def setEntityPosition(self, entity, position):
         self.entityPositions[entity] = position
+        self._save_entity(entity)
 
     def translate(self, entity, direction, amount):
         self.entityPositions[entity] = self.entityPositions[entity].translate(
             direction, amount)
+        self._save_entity(entity)
 
     def rotate(self, entity, angle):
         self.entityPositions[entity] = self.entityPositions[entity].rotate(
             angle)
+        self._save_entity(entity)
+
+    def _save_entity(self, entity):
+        if not self.redis_client:
+            return
+
+        position = self.entityPositions[entity]
+        self.redis_client.xadd("roversim:entity:{}".format(entity.id), {
+                               "x": position.point.x, "y": position.point.y, "direction": position.angle})
+
+    def _load_entity(self, entity):
+        if not self.redis_client:
+            return
+
+        parts = self.redis_client.xrevrange(
+            "roversim:entity:{}".format(entity.id), count=1)
+        if len(parts) == 0:
+            return EntityPosition(Point(0, 0), 0)
+
+        return EntityPosition(Point(float(parts[0][1][b"x"]), float(
+            parts[0][1][b"y"])), float(parts[0][1][b"direction"]))
 
 
 class Point:

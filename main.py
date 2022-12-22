@@ -57,8 +57,8 @@ def main():
 
     w = roversim.World(rds)
 
-    r = roversim.Rover(w)
-    w.setEntityPosition(r, roversim.EntityPosition(roversim.Point(0, 0), 0))
+    r = roversim.Rover(w, "prime")
+    w.restore_entity(r)
 
     ts = float(rds.get("roversim:ts")) or 0.0
     print("starting at {}".format(ts))

@@ -21,7 +21,8 @@ class Rover:
     MAX_MOTOR_VELOCITY = 0.001
     WHEELBASE_LENGTH = 0.005
 
-    def __init__(self, world):
+    def __init__(self, world, id):
+        self.id = id
         self.world = world
         self.world.entities.append(self)
 
