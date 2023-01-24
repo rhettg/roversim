@@ -9,7 +9,7 @@ import roversim
 TIME_STEP = 0.1
 
 
-def applyCommand(rover, cmd):
+def apply_command(rover, cmd):
     cmd = cmd.strip().lower()
 
     if cmd == "quit":
@@ -18,30 +18,30 @@ def applyCommand(rover, cmd):
         return TIME_STEP
     elif cmd.startswith("lt "):
         _, angle = cmd.split(" ")
-        rover.motorA.setPower(-0.8)
-        rover.motorB.setPower(0.8)
+        rover.motor_a.set_power(-0.8)
+        rover.motor_b.set_power(0.8)
 
         return 1.32 * abs(float(angle) / 100)
     elif cmd.startswith("rt "):
         _, angle = cmd.split(" ")
-        rover.motorA.setPower(0.8)
-        rover.motorB.setPower(-0.8)
+        rover.motor_a.set_power(0.8)
+        rover.motor_b.set_power(-0.8)
 
         return 1.32 * abs(float(angle)) / 100
     elif cmd.startswith("fwd "):
         _, duration = cmd.split(" ")
-        rover.motorA.setPower(0.8)
-        rover.motorB.setPower(0.8)
+        rover.motor_a.set_power(0.8)
+        rover.motor_b.set_power(0.8)
         return float(duration) / 100
     elif cmd.startswith("ffwd "):
         _, duration = cmd.split(" ")
-        rover.motorA.setPower(1.0)
-        rover.motorB.setPower(1.0)
+        rover.motor_a.set_power(1.0)
+        rover.motor_b.set_power(1.0)
         return float(duration) / 100
     elif cmd.startswith("bck "):
         _, duration = cmd.split(" ")
-        rover.motorA.setPower(-0.8)
-        rover.motorB.setPower(-0.8)
+        rover.motor_a.set_power(-0.8)
+        rover.motor_b.set_power(-0.8)
         return float(duration) / 100
     else:
         print("Unknown command: {}".format(cmd))
@@ -57,7 +57,8 @@ def main():
 
     w = roversim.World(rds)
 
-    r = roversim.Rover(w, "prime")
+    recorder = roversim.Recorder("yakapi:prime", rds)
+    r = roversim.Rover(w, "prime", recorder=recorder)
     w.restore_entity(r)
 
     ts = float(rds.get("roversim:ts")) or 0.0
@@ -66,15 +67,18 @@ def main():
     try:
         for cmd in sys.stdin:
             print("processing {}".format(cmd))
-            nextDelay = applyCommand(r, cmd)
-            while nextDelay > 0:
+            next_delay = apply_command(r, cmd)
+            while next_delay > 0:
                 w.tick(ts)
+                recorder.save()
                 time.sleep(TIME_STEP)
                 ts += TIME_STEP
-                nextDelay -= TIME_STEP
+                next_delay -= TIME_STEP
 
-            r.motorA.setPower(0)
-            r.motorB.setPower(0)
+            r.motor_a.set_power(0)
+            r.motor_b.set_power(0)
+            w.tick(ts)
+            recorder.save()
     except KeyboardInterrupt:
         pass
 

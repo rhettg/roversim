@@ -2,14 +2,17 @@ import math
 
 
 class Motor:
-    def __init__(self, world):
+    def __init__(self, world, id, recorder=None):
+        self.id = id
         self.world = world
         self.world.entities.append(self)
+        self.recorder = recorder
         self.speed = 0
 
-    def setPower(self, power):
-        # TODO: model in acceleration, stall, etc.
+    def set_power(self, power):
         self.speed = power
+        if self.recorder:
+            self.recorder.set("{}:speed".format(self.id), self.speed)
 
     def tick(self, ts):
         pass
@@ -21,24 +24,26 @@ class Rover:
     MAX_MOTOR_VELOCITY = 0.001
     WHEELBASE_LENGTH = 0.005
 
-    def __init__(self, world, id):
+    def __init__(self, world, id, recorder=None):
         self.id = id
         self.world = world
         self.world.entities.append(self)
 
-        self.motorA = Motor(self.world)
-        self.motorB = Motor(self.world)
+        self.recorder = recorder
 
-        self.lastTick = 0
+        self.motor_a = Motor(self.world, "motor_a", self.recorder)
+        self.motor_b = Motor(self.world, "motor_b", self.recorder)
+
+        self.last_tick = 0
 
     def size(self):
         return (0.01, 0.01)
 
-    def calculateMovement(self, ts):
-        dt = ts - self.lastTick
+    def calculate_movement(self, ts):
+        dt = ts - self.last_tick
 
-        s1 = self.MAX_MOTOR_VELOCITY * self.motorA.speed
-        s2 = self.MAX_MOTOR_VELOCITY * self.motorB.speed
+        s1 = self.MAX_MOTOR_VELOCITY * self.motor_a.speed
+        s2 = self.MAX_MOTOR_VELOCITY * self.motor_b.speed
 
         # TODO: What I'd like to do is take into account the speed of two
         # motors, the wheelbase length and how the arc of the movemeent changes
@@ -70,16 +75,31 @@ class Rover:
         return (rotation * dt, 0, s * dt)
 
     def tick(self, ts):
-        if self.lastTick == 0:
-            self.lastTick = ts
+        if self.last_tick == 0:
+            self.last_tick = ts
 
-        rotate, direction, amount = self.calculateMovement(ts)
+        rotate, direction, amount = self.calculate_movement(ts)
         # print("rotation after {:.4f}: {:.2f}°, direction: {}°, amount: {:.3f}m".format(ts - self.lastTick, math.degrees(rotate), math.degrees(direction), amount))
 
         self.world.translate(self, direction, amount)
         self.world.rotate(self, rotate)
 
-        p = self.world.entityPositions[self]
-        print("Rover: {:.1f}° ({:.3f}m, {:.3f}m)".format(
-            math.degrees(p.angle), p.point.x, p.point.y))
-        self.lastTick = ts
+        p = self.world.entity_positions[self]
+
+        print("[+{:.2f}] Rover: {:.1f}° ({:.3f}m, {:.3f}m)".format(
+            ts, math.degrees(p.angle), p.point.x, p.point.y))
+
+        self.last_tick = ts
+
+
+class Recorder:
+    def __init__(self, name, redis_client):
+        self.name = name
+        self.redis_client = redis_client
+        self.data = {}
+
+    def set(self, key, value):
+        self.data[key] = value
+
+    def save(self):
+        self.redis_client.xadd(self.name, self.data)

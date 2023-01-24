@@ -1,2 +1,2 @@
-from .world import World, EntityPosition, Point
-from .rover import Rover
+from .world import World, Position, Point
+from .rover import Rover, Recorder
