@@ -61,7 +61,7 @@ def main():
     r = roversim.Rover(w, "prime", recorder=recorder)
     w.restore_entity(r)
 
-    ts = float(rds.get("roversim:ts")) or 0.0
+    ts = float(rds.get("roversim:ts") or "0")
     print("starting at +{:.2f}s".format(ts))
 
     try:
