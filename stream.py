@@ -5,12 +5,9 @@ import redis
 
 
 def main():
-    # Parse arguments
     if len(sys.argv) < 2:
         print("Usage: python3 stream.py <stream name>...", file=sys.stderr)
         sys.exit(1)
-
-    stream_name = sys.argv[1]
 
     rds = redis.from_url(os.environ.get(
         "REDIS_URL", "redis://localhost:6379/0"))
