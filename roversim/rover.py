@@ -102,4 +102,7 @@ class Recorder:
         self.data[key] = value
 
     def save(self):
+        if len(self.data) == 0:
+            return
         self.redis_client.xadd(self.name, self.data)
+        self.data.clear()
