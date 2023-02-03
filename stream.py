@@ -1,5 +1,6 @@
 import os
 import sys
+import time
 import redis
 
 
@@ -30,6 +31,7 @@ def main():
             for evt in rds.xrange(stream_name, "({}".format(last_message_id.decode()), "+"):
                 last_message_id = evt[0]
                 print(evt)
+            time.sleep(0.01)
         except KeyboardInterrupt:
             print("Bye!")
             break
