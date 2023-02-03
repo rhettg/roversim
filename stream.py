@@ -1,6 +1,7 @@
 import os
 import sys
 import time
+
 import redis
 
 
@@ -21,11 +22,13 @@ def main():
 
     while True:
         try:
-            for evts in rds.xread(streams, block=100):
-                stream = evts[0]
-                for evt in evts[1]:
+            for stream, evts in rds.xread(streams, block=100):
+                for evt in evts:
+                    fields = ""
+                    for k, v in evt[1].items():
+                        fields += "{}={} ".format(k.decode(), v.decode())
                     print("{} {} {}".format(
-                        stream.decode(), evt[0].decode(), evt[1]))
+                        stream.decode(), evt[0].decode(), fields))
                     streams[stream] = evt[0]
         except KeyboardInterrupt:
             print("Bye!")
