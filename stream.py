@@ -6,8 +6,8 @@ import redis
 
 def main():
     # Parse arguments
-    if len(sys.argv) != 2:
-        print("Usage: python3 stream.py <stream name>", file=sys.stderr)
+    if len(sys.argv) < 2:
+        print("Usage: python3 stream.py <stream name>...", file=sys.stderr)
         sys.exit(1)
 
     stream_name = sys.argv[1]
@@ -18,20 +18,18 @@ def main():
         print("Redis is not available", file=sys.stderr)
         sys.exit(1)
 
-    # find the last event in the stream
-    tail = rds.xrevrange(stream_name, "+", "-", count=1)
-    if len(tail) == 0:
-        print("Stream not found", file=sys.stderr)
-        sys.exit(1)
-
-    last_message_id = tail[0][0]
+    streams = {}
+    for s in sys.argv[1:]:
+        streams[s] = "$"
 
     while True:
         try:
-            for evt in rds.xrange(stream_name, "({}".format(last_message_id.decode()), "+"):
-                last_message_id = evt[0]
-                print(evt)
-            time.sleep(0.01)
+            for evts in rds.xread(streams, block=100):
+                stream = evts[0]
+                for evt in evts[1]:
+                    print("{} {} {}".format(
+                        stream.decode(), evt[0].decode(), evt[1]))
+                    streams[stream] = evt[0]
         except KeyboardInterrupt:
             print("Bye!")
             break
