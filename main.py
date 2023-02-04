@@ -24,22 +24,29 @@ def main():
     ts = float(rds.get("roversim:ts") or "0")
     print("starting at +{:.2f}s".format(ts))
 
-    streams = {
-        "yakapi:prime:motor_a": "$",
-        "yakapi:prime:motor_b": "$",
-    }
+    # We can't rely on "$" when using multiple streams because the first stream
+    # will end up racing with the others. Let's explicilty find the last message
+    # in each stream and initialize our loop that way.
+    streams = {}
+    for stream in ("yakapi:prime:motor_a", "yakapi:prime:motor_b"):
+        last = rds.xrevrange(stream, count=1)
+        # Create a reasonable default if the stream is empty.
+        streams[stream] = b'0-0'
+        if last:
+            streams[stream] = last[0][0]
 
     while True:
         start_time = time.time()
         try:
-            for stream, evts in rds.xread(streams, block=int(TIME_STEP * 1000)):
+            for result in rds.xread(streams, block=int(TIME_STEP * 1000)):
+                stream, evts = result
                 for evt in evts:
                     if stream == b"yakapi:prime:motor_a":
                         r.motor_a.set_power(float(evt[1][b"power"]))
                     if stream == b"yakapi:prime:motor_b":
                         r.motor_b.set_power(float(evt[1][b"power"]))
 
-                    streams[stream] = evt[0]
+                    streams[stream.decode()] = evt[0]
 
             ts += time.time() - start_time
             w.tick(ts)

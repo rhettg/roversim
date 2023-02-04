@@ -73,8 +73,11 @@ class Rover:
         if self.last_tick == 0:
             self.last_tick = ts
 
+        # print("motor_a: {}, motor_b: {}".format(
+            # self.motor_a.speed, self.motor_b.speed))
         rotate, direction, amount = self.calculate_movement(ts)
-        # print("rotation after {:.4f}: {:.2f}°, direction: {}°, amount: {:.3f}m".format(ts - self.lastTick, math.degrees(rotate), math.degrees(direction), amount))
+        # print("rotation after {:.4f}: {:.2f}°, direction: {}°, amount: {:.3f}m".format(
+        # ts - self.last_tick, math.degrees(rotate), math.degrees(direction), amount))
 
         self.world.translate(self, direction, amount)
         self.world.rotate(self, rotate)
