@@ -18,8 +18,7 @@ def main():
 
     w = roversim.World(rds)
 
-    recorder = roversim.Recorder("yakapi:prime", rds)
-    r = roversim.Rover(w, "prime", recorder=recorder)
+    r = roversim.Rover(w, "prime")
     w.restore_entity(r)
 
     ts = float(rds.get("roversim:ts") or "0")
@@ -44,8 +43,6 @@ def main():
 
             ts += time.time() - start_time
             w.tick(ts)
-            # TODO: I think we don't need the recorder
-            recorder.save()
         except KeyboardInterrupt:
             print("Bye!")
             break
