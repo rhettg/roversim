@@ -9,45 +9,6 @@ import roversim
 TIME_STEP = 0.1
 
 
-def apply_command(rover, cmd):
-    cmd = cmd.strip().lower()
-
-    if cmd == "quit":
-        return None
-    elif cmd == "noop":
-        return TIME_STEP
-    elif cmd.startswith("lt "):
-        _, angle = cmd.split(" ")
-        rover.motor_a.set_power(-0.8)
-        rover.motor_b.set_power(0.8)
-
-        return 1.32 * abs(float(angle) / 100)
-    elif cmd.startswith("rt "):
-        _, angle = cmd.split(" ")
-        rover.motor_a.set_power(0.8)
-        rover.motor_b.set_power(-0.8)
-
-        return 1.32 * abs(float(angle)) / 100
-    elif cmd.startswith("fwd "):
-        _, duration = cmd.split(" ")
-        rover.motor_a.set_power(0.8)
-        rover.motor_b.set_power(0.8)
-        return float(duration) / 100
-    elif cmd.startswith("ffwd "):
-        _, duration = cmd.split(" ")
-        rover.motor_a.set_power(1.0)
-        rover.motor_b.set_power(1.0)
-        return float(duration) / 100
-    elif cmd.startswith("bck "):
-        _, duration = cmd.split(" ")
-        rover.motor_a.set_power(-0.8)
-        rover.motor_b.set_power(-0.8)
-        return float(duration) / 100
-    else:
-        print("Unknown command: {}".format(cmd))
-        return TIME_STEP
-
-
 def main():
     rds = redis.from_url(os.environ.get(
         "REDIS_URL", "redis://localhost:6379/0"))
@@ -64,23 +25,30 @@ def main():
     ts = float(rds.get("roversim:ts") or "0")
     print("starting at +{:.2f}s".format(ts))
 
-    try:
-        for cmd in sys.stdin:
-            print("processing {}".format(cmd))
-            next_delay = apply_command(r, cmd)
-            while next_delay > 0:
-                w.tick(ts)
-                recorder.save()
-                time.sleep(TIME_STEP)
-                ts += TIME_STEP
-                next_delay -= TIME_STEP
+    streams = {
+        "yakapi:prime:motor_a": "$",
+        "yakapi:prime:motor_b": "$",
+    }
 
-            r.motor_a.set_power(0)
-            r.motor_b.set_power(0)
+    while True:
+        start_time = time.time()
+        try:
+            for stream, evts in rds.xread(streams, block=int(TIME_STEP * 1000)):
+                for evt in evts:
+                    if stream == b"yakapi:prime:motor_a":
+                        r.motor_a.set_power(float(evt[1][b"power"]))
+                    if stream == b"yakapi:prime:motor_b":
+                        r.motor_b.set_power(float(evt[1][b"power"]))
+
+                    streams[stream] = evt[0]
+
+            ts += time.time() - start_time
             w.tick(ts)
+            # TODO: I think we don't need the recorder
             recorder.save()
-    except KeyboardInterrupt:
-        pass
+        except KeyboardInterrupt:
+            print("Bye!")
+            break
 
 
 if __name__ == "__main__":
