@@ -2,17 +2,14 @@ import math
 
 
 class Motor:
-    def __init__(self, world, id, recorder=None):
+    def __init__(self, world, id):
         self.id = id
         self.world = world
         self.world.entities.append(self)
-        self.recorder = recorder
         self.speed = 0
 
     def set_power(self, power):
         self.speed = power
-        if self.recorder:
-            self.recorder.set("{}:speed".format(self.id), self.speed)
 
     def tick(self, ts):
         pass
@@ -24,15 +21,13 @@ class Rover:
     MAX_MOTOR_VELOCITY = 0.001
     WHEELBASE_LENGTH = 0.005
 
-    def __init__(self, world, id, recorder=None):
+    def __init__(self, world, id):
         self.id = id
         self.world = world
         self.world.entities.append(self)
 
-        self.recorder = recorder
-
-        self.motor_a = Motor(self.world, "motor_a", self.recorder)
-        self.motor_b = Motor(self.world, "motor_b", self.recorder)
+        self.motor_a = Motor(self.world, "motor_a")
+        self.motor_b = Motor(self.world, "motor_b")
 
         self.last_tick = 0
 
@@ -78,8 +73,11 @@ class Rover:
         if self.last_tick == 0:
             self.last_tick = ts
 
+        # print("motor_a: {}, motor_b: {}".format(
+            # self.motor_a.speed, self.motor_b.speed))
         rotate, direction, amount = self.calculate_movement(ts)
-        # print("rotation after {:.4f}: {:.2f}°, direction: {}°, amount: {:.3f}m".format(ts - self.lastTick, math.degrees(rotate), math.degrees(direction), amount))
+        # print("rotation after {:.4f}: {:.2f}°, direction: {}°, amount: {:.3f}m".format(
+        # ts - self.last_tick, math.degrees(rotate), math.degrees(direction), amount))
 
         self.world.translate(self, direction, amount)
         self.world.rotate(self, rotate)
@@ -90,19 +88,3 @@ class Rover:
             ts, math.degrees(p.angle), p.point.x, p.point.y))
 
         self.last_tick = ts
-
-
-class Recorder:
-    def __init__(self, name, redis_client):
-        self.name = name
-        self.redis_client = redis_client
-        self.data = {}
-
-    def set(self, key, value):
-        self.data[key] = value
-
-    def save(self):
-        if len(self.data) == 0:
-            return
-        self.redis_client.xadd(self.name, self.data)
-        self.data.clear()
