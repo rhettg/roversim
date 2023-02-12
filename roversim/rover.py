@@ -6,10 +6,10 @@ class Motor:
         self.id = id
         self.world = world
         self.world.entities.append(self)
-        self.speed = 0
+        self.power = 0
 
     def set_power(self, power):
-        self.speed = power
+        self.power = power
 
     def tick(self, ts):
         pass
@@ -37,8 +37,8 @@ class Rover:
     def calculate_movement(self, ts):
         dt = ts - self.last_tick
 
-        s1 = self.MAX_MOTOR_VELOCITY * self.motor_a.speed
-        s2 = self.MAX_MOTOR_VELOCITY * self.motor_b.speed
+        s1 = self.MAX_MOTOR_VELOCITY * self.motor_a.power
+        s2 = self.MAX_MOTOR_VELOCITY * self.motor_b.power
 
         # TODO: What I'd like to do is take into account the speed of two
         # motors, the wheelbase length and how the arc of the movemeent changes
