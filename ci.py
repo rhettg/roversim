@@ -4,8 +4,6 @@ import time
 
 import redis
 
-import roversim
-
 
 def motor_a(rds, power):
     rds.xadd("yakapi:prime:motor_a", {"power": power})

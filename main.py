@@ -50,6 +50,17 @@ def main():
 
             ts += time.time() - start_time
             w.tick(ts)
+
+            # At the end of the cycle we update our telemetry values. This can
+            # be consumed by yakapi.  This is done outside the simulation
+            # entities themselves so as to not confuse what is part of the We
+            # would expect a real rover to send all these same values, just
+            # finding the value by reading it's own sensors.
+            telemetry = {
+                "motor_a_power": r.motor_a.power,
+                "motor_b_power": r.motor_b.power,
+            }
+            rds.hset("yakapi:prime", mapping=telemetry)
         except KeyboardInterrupt:
             print("Bye!")
             break

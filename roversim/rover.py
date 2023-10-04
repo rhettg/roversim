@@ -26,8 +26,8 @@ class Rover:
         self.world = world
         self.world.entities.append(self)
 
-        self.motor_a = Motor(self.world, "motor_a")
-        self.motor_b = Motor(self.world, "motor_b")
+        self.motor_a = Motor(self.world, "{}:motor_a".format(self.id))
+        self.motor_b = Motor(self.world, "{}:motor_b".format(self.id))
 
         self.last_tick = 0
 
