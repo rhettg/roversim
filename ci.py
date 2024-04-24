@@ -13,64 +13,97 @@ def motor_b(rds, power):
     rds.xadd("yakapi:prime:motor_b", {"power": power})
 
 
-def apply_command(rds, cmd):
+def apply_command(rds, cmd, args):
     cmd = cmd.strip().lower()
+    args = args.split(" ")
 
-    if cmd == "quit":
-        return None
-    elif cmd == "noop":
+    if cmd == "noop":
         return 0.0
-    elif cmd.startswith("lt "):
-        _, angle = cmd.split(" ")
+    elif cmd.startswith("lt"):
+        angle = args[0]
         motor_a(rds, -0.8)
         motor_b(rds, 0.8)
 
         return 1.32 * abs(float(angle) / 100)
-    elif cmd.startswith("rt "):
-        _, angle = cmd.split(" ")
+    elif cmd.startswith("rt"):
+        angle = args[0]
         motor_a(rds, 0.8)
         motor_b(rds, -0.8)
 
         return 1.32 * abs(float(angle)) / 100
-    elif cmd.startswith("fwd "):
-        _, duration = cmd.split(" ")
+    elif cmd.startswith("fwd"):
+        duration = args[0]
         motor_a(rds, 0.8)
         motor_b(rds, 0.8)
         return float(duration) / 100
-    elif cmd.startswith("ffwd "):
-        _, duration = cmd.split(" ")
+    elif cmd.startswith("ffwd"):
+        duration = args[0]
         motor_a(rds, 1.0)
         motor_b(rds, 1.0)
         return float(duration) / 100
-    elif cmd.startswith("bck "):
-        _, duration = cmd.split(" ")
+    elif cmd.startswith("bck"):
+        duration = args[0]
         motor_a(rds, -0.8)
         motor_b(rds, -0.8)
         return float(duration) / 100
     else:
-        print("Unknown command: {}".format(cmd))
-        return 0.0
+        raise Exception("Unknown command: {}".format(cmd))
 
+
+def send_result(rds, id, result, error=None):
+    if error:
+        response = {"error": error}
+    else:
+        response = {"result": result}
+
+    rds.xadd("yakapi:ci:result", response, id=id)
+    print(f"sent response: {response}")
 
 def main():
+    redis_url = os.environ.get("YAKAPI_REDIS_URL", "localhost:6379")
     rds = redis.from_url(os.environ.get(
-        "REDIS_URL", "redis://localhost:6379/0"))
+        "REDIS_URL", f"redis://{redis_url}/0"))
     if not rds.ping():
         print("Redis is not available", file=sys.stderr)
         sys.exit(1)
 
-    try:
-        for cmd in sys.stdin:
-            cmd = cmd.strip()
-            print("processing {}... ".format(cmd), end="", flush=True)
-            next_delay = apply_command(rds, cmd)
-            time.sleep(next_delay)
+    streams = {
+        b"yakapi:ci": "$"
+    }
 
-            motor_a(rds, 0)
-            motor_b(rds, 0)
-            print("done")
-    except KeyboardInterrupt:
-        pass
+    while True:
+        try:
+            for stream, evts in rds.xread(streams, block=100):
+                for evt in evts:
+                    # Continue from the last event
+                    streams[stream] = evt[0]
+
+                    fields = ""
+                    command = {}
+                    for k, v in evt[1].items():
+                        command[k.decode()] = v.decode()
+                        fields += "{}={} ".format(k.decode(), v.decode())
+                    print("{} {} {}".format(
+                        stream.decode(), evt[0].decode(), fields))
+
+                    print(f"processing {command["cmd"]} {command["args"]}... ", end="", flush=True)
+                    try:
+                        next_delay = apply_command(rds, command["cmd"], command.get("args", ""))
+                    except Exception as e:
+                        send_result(rds, evt[0], None, error=str(e))
+                        continue
+
+                    print(f"sleeping")
+                    time.sleep(next_delay)
+                    motor_a(rds, 0)
+                    motor_b(rds, 0)
+                    print("done")
+
+                    send_result(rds, evt[0], "ok")
+
+        except KeyboardInterrupt:
+            print("Bye!")
+            break
 
 
 if __name__ == "__main__":
