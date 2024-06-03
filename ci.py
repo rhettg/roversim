@@ -86,7 +86,7 @@ def main():
                     print("{} {} {}".format(
                         stream.decode(), evt[0].decode(), fields))
 
-                    print(f"processing {command["cmd"]} {command["args"]}... ", end="", flush=True)
+                    print(f"processing {command['cmd']} {command['args']}... ", end="", flush=True)
                     try:
                         next_delay = apply_command(rds, command["cmd"], command.get("args", ""))
                     except Exception as e:

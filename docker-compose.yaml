@@ -1,0 +1,22 @@
+version: '3'
+
+services:
+  ci:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      - YAKAPI_REDIS_URL=172.17.0.1:6379
+    command: python ci.py
+    volumes:
+      - .:/app
+
+  roversim:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      - YAKAPI_REDIS_URL=172.17.0.1:6379
+    command: python main.py
+    volumes:
+      - .:/app

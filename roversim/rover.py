@@ -1,4 +1,7 @@
 import math
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class Motor:
@@ -15,6 +18,23 @@ class Motor:
         pass
 
 
+class Compass:
+    def __init__(self, world, id, rover):
+        self.id = id
+        self.world = world
+        self.world.entities.append(self)
+        self.heading = 0
+        self.rover = rover
+
+    def tick(self, ts):
+        pos = self.world.entity_positions.get(self.rover)
+        if pos is None:
+            logger.warning("No position for rover {}".format(self.rover))
+            return
+
+        self.heading = math.round(math.degrees(pos.angle) / 360) * 360
+
+
 class Rover:
     # At full power, how fast should the motors push the rover?
     # In meters per second.
@@ -28,6 +48,8 @@ class Rover:
 
         self.motor_a = Motor(self.world, "{}:motor_a".format(self.id))
         self.motor_b = Motor(self.world, "{}:motor_b".format(self.id))
+
+        self.compass = Compass(self.world, "{}:compass".format(self.id), self)
 
         self.last_tick = 0
 

@@ -72,11 +72,7 @@ def main():
             if change:
                 send_telemetry(rds, "motor_a_power", r.motor_a.power)
                 send_telemetry(rds, "motor_b_power", r.motor_b.power)
-            #telemetry = {
-                #"motor_a_power": r.motor_a.power,
-                #"motor_b_power": r.motor_b.power,
-            #}
-            #rds.hset("yakapi:prime", mapping=telemetry)
+                send_telemetry(rds, "heading", r.compass.heading)
         except KeyboardInterrupt:
             print("Bye!")
             break
