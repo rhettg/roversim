@@ -1,16 +1,15 @@
 import os
-import sys
 import time
 
-import redis
+from yakapi import Client
 
 
-def motor_a(rds, power):
-    rds.xadd("yakapi:prime:motor_a", {"power": power})
+def motor_a(yakapi_client, power):
+    yakapi_client.publish("motor_a", {"power": power})
 
 
-def motor_b(rds, power):
-    rds.xadd("yakapi:prime:motor_b", {"power": power})
+def motor_b(yakapi_client, power):
+    yakapi_client.publish("motor_b", {"power": power})
 
 
 def apply_command(rds, cmd, args):
@@ -50,61 +49,48 @@ def apply_command(rds, cmd, args):
         raise Exception("Unknown command: {}".format(cmd))
 
 
-def send_result(rds, id, result, error=None):
-    if error:
-        response = {"error": error}
-    else:
-        response = {"result": result}
+def send_result(yakapi_client, id, result, error=None):
+    response = {"id": id}
 
-    rds.xadd("yakapi:ci:result", response, id=id)
+    if error:
+        response["error"] = error
+    else:
+        response["result"] = result
+
+    yakapi_client.publish("ci:result", response)
     print(f"sent response: {response}")
 
-def main():
-    redis_url = os.environ.get("YAKAPI_REDIS_URL", "localhost:6379")
-    rds = redis.from_url(os.environ.get(
-        "REDIS_URL", f"redis://{redis_url}/0"))
-    if not rds.ping():
-        print("Redis is not available", file=sys.stderr)
-        sys.exit(1)
 
-    streams = {
-        b"yakapi:ci": "$"
-    }
+def main():
+    yc = Client(os.environ.get("YAKAPI_URL", "http://localhost:8080"))
 
     while True:
         try:
-            for stream, evts in rds.xread(streams, block=100):
-                for evt in evts:
-                    # Continue from the last event
-                    streams[stream] = evt[0]
+            for _, evt in yc.subscribe(["ci"]):
+                print(f"processing {evt}")
 
-                    fields = ""
-                    command = {}
-                    for k, v in evt[1].items():
-                        command[k.decode()] = v.decode()
-                        fields += "{}={} ".format(k.decode(), v.decode())
-                    print("{} {} {}".format(
-                        stream.decode(), evt[0].decode(), fields))
+                if 'id' not in evt:
+                    print("skipping because missing id")
+                    continue
 
-                    print(f"processing {command['cmd']} {command['args']}... ", end="", flush=True)
-                    try:
-                        next_delay = apply_command(rds, command["cmd"], command.get("args", ""))
-                    except Exception as e:
-                        send_result(rds, evt[0], None, error=str(e))
-                        continue
+                try:
+                    next_delay = apply_command(yc, evt["cmd"], evt.get("args", ""))
+                except Exception as e:
+                    send_result(yc, evt['id'], None, error=str(e))
+                    continue
 
-                    print(f"sleeping")
-                    time.sleep(next_delay)
-                    motor_a(rds, 0)
-                    motor_b(rds, 0)
-                    print("done")
+                print(f"sleeping")
+                time.sleep(next_delay)
+                motor_a(yc, 0)
+                motor_b(yc, 0)
+                print("done")
 
-                    send_result(rds, evt[0], "ok")
-
+                send_result(yc, evt['id'], "ok")
         except KeyboardInterrupt:
             print("Bye!")
             break
 
 
 if __name__ == "__main__":
+    print("starting ci")
     main()

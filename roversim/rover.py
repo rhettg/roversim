@@ -32,7 +32,7 @@ class Compass:
             logger.warning("No position for rover {}".format(self.rover))
             return
 
-        self.heading = math.round(math.degrees(pos.angle) / 360) * 360
+        self.heading = round(math.degrees(pos.angle))
 
 
 class Rover:

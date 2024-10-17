@@ -1,22 +1,23 @@
-version: '3'
-
 services:
   ci:
     build:
       context: .
       dockerfile: Dockerfile
     environment:
-      - YAKAPI_REDIS_URL=172.17.0.1:6379
-    command: python ci.py
+      - YAKAPI_URL=http://172.17.0.1
+    command: python -u ci.py
     volumes:
       - .:/app
+      - ../yakapi/yakapi_package:/yakapi_package
 
   roversim:
     build:
       context: .
       dockerfile: Dockerfile
     environment:
-      - YAKAPI_REDIS_URL=172.17.0.1:6379
-    command: python main.py
+      - YAKAPI_URL=http://172.17.0.1
+      - REDIS_URL=redis://172.17.0.1:6379/0
+    command: python -u main.py
     volumes:
       - .:/app
+      - ../yakapi/yakapi_package:/yakapi_package
